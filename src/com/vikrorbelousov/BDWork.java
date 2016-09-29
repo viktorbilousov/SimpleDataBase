@@ -1,10 +1,7 @@
 package com.vikrorbelousov;
-import java.lang.reflect.Executable;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Queue;
 
 /**
  * Created by Belousov on 26.09.2016.
@@ -63,24 +60,28 @@ public class BDWork {
 
 
 
-    private void addrRow(String table, String row)
+    private boolean addrRow(String table, String row)
     {
         try {
            stmt.execute(SQLQuery.getQuery_InsertInTable(table, row));
         }
         catch (SQLException E){
             System.out.println(E.getMessage());
+            return false;
         }
+        return true;
     }
 
-    private void deleteRow(String table, String where )
+    private boolean deleteRow(String table, String where )
     {
         try {
             stmt.execute(SQLQuery.getQuery_DeleteRowInTable(table, where));
         }
         catch (SQLException E){
             System.out.println(E.getMessage());
+            return false;
         }
+        return true;
     }
 
     private void updateValue(String table, String where, String set)
@@ -168,7 +169,6 @@ public class BDWork {
                 else if (balance < 0 && isActive)
                     updateValue(userTable, "idUsers=" + id, "Status=0");
             }
-
         }
 
         @Override
@@ -185,8 +185,9 @@ public class BDWork {
     class Admin
     {
         private Admin(){}
+        public static final int ERROR_ADD_USER = -1;
 
-        public void addUser(int serviceIndex, int balance, boolean status)
+        public long addUser(int serviceIndex, int balance, boolean status)
         {
             userCnt ++;
             int statusInt =0;
@@ -194,18 +195,21 @@ public class BDWork {
                 statusInt = 1;
 
             String newRow = Long.toString(userCnt) + ", " + serviceIndex + ", " +  balance + ", " + statusInt;
-            addrRow(userTable, newRow);
+            if(addrRow(userTable, newRow))
+                return userCnt;
+            return -1;
+
         }
 
-        public void addUser(){
-            addUser(1,0,false);
+        public long addUser(){
+            return addUser(1,0,false);
         }
 
-        public void deleteUser(int idUser){
-            deleteRow(userTable, "idUsers=" + idUser);
+        public boolean deleteUser(int idUser){
+            return deleteRow(userTable, "idUsers=" + idUser);
         }
 
-        public void setStatusUser(int idUser, boolean status)
+        public boolean setStatusUser(int idUser, boolean status)
         {
             String statusStr = "0";
             if (status)
@@ -214,7 +218,9 @@ public class BDWork {
                 stmt.execute(SQLQuery.getQuery_UpadateRowInTable(userTable, "idUsers=" + idUser, "Status=" +statusStr));
             }catch (SQLException E) {
                 System.out.println(E.getMessage());
+                return false;
             }
+            return true;
         }
 
         public UserParam getUserParam(int id)
@@ -237,18 +243,22 @@ public class BDWork {
             return param;
         }
 
-        public String[] getArrayStringNotActiveUsers()
+        private String[] getArrayStringUsers(boolean status)
         {
+            String statusChar = "0";
+            if(status)
+                statusChar = "1";
             ArrayList<String> out = new ArrayList<>();
 
             try{
-                rs = stmt.executeQuery(SQLQuery.qetQuery_selectRowInTable(userTable,"Status=0"));
-
-                while (rs.next())
-                    ///TODO  сделать вывод
-                   // out.add(getUserParam(rs.getInt(1)).toString());
-                    System.out.println(getUserParam(rs.getInt(1)).toString());
-
+                rs = stmt.executeQuery(SQLQuery.qetQuery_selectRowInTable(userTable,"Status=" +statusChar));
+                int cntColon = rs.getMetaData().getColumnCount();
+                while (rs.next()) {
+                    String line = "";
+                    for (int i = 0; i < cntColon; i++)
+                        line += rs.getInt(i+1) + "\t";
+                    out.add(line);
+                }
             }catch (SQLException E){
                 System.out.println(E.getMessage());
             }
@@ -264,11 +274,36 @@ public class BDWork {
             return s;
         }
 
-        public void outListNotActiveUsers()
+        public void outListUsers(boolean status)
         {
-            for(String S : getArrayStringNotActiveUsers())
+            try {
+
+                rs = stmt.executeQuery(SQLQuery.getQuery_selectAllRowsInTable(userTable));
+                ResultSetMetaData rsMd = rs.getMetaData();
+                for (int i = 0; i < rsMd.getColumnCount(); i++)
+                    System.out.print(rsMd.getColumnName(i + 1) + "\t");
+                System.out.println();
+            }
+            catch (SQLException E){
+                System.out.println(E.getMessage());
+            }
+            for(String S : getArrayStringUsers(status))
                 System.out.println(S);
         }
+
+        public String[] getArrayNonActiveUsers()  {
+            return getArrayStringUsers(false);
+        }
+        public String[] getArrayActiveUsers(){
+            return getArrayStringUsers(true);
+        }
+        public  void outUserTable(){
+            outALL(userTable);
+        }
+        public void outServicesTable(){
+            outALL(servicesTable);
+        }
+
         @Override
         public String toString() {
             return "Admin";

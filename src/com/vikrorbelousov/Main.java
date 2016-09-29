@@ -1,27 +1,27 @@
 package com.vikrorbelousov;
 
+import java.util.LinkedList;
+
 public class Main {
 
     public static void main(String[] args) {
 	// write your code here
         BDWork bd = new BDWork();
-       // bd.addUser();
-        //bd.addrRowToTable("services" , " '7', 'test', '88', '1'");
-       // bd.deleteRowFromTable("services" , "idServises=7");
-      //  bd.updateValue("services", "idServises=1", "Price=34");
-
+        BDcmd cmd = new BDcmd(bd);
+        cmd.Start();
 
         BDWork.User user = bd.getUser(1);
         //user.addMoney(-1000);
 
         BDWork.Admin admin = bd.getAdmin();
        // admin.addUser();
-        BDWork.UserParam param = admin.getUserParam(1);
-       admin.outListNotActiveUsers();
-        bd.outALL("users");
+      //  bd.outALL("users");
 
+        LinkedList<Integer> list = null;
 
 
 
     }
+
+
 }
